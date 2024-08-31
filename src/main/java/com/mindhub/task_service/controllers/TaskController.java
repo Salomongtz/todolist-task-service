@@ -1,5 +1,6 @@
 package com.mindhub.task_service.controllers;
 
+import com.mindhub.task_service.exceptions.TaskNotFoundException;
 import com.mindhub.task_service.models.TaskEntity;
 import com.mindhub.task_service.services.TaskService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,7 +9,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/api/tasks")
+@RequestMapping("/tasks")
 public class TaskController {
 
     @Autowired
@@ -16,8 +17,7 @@ public class TaskController {
 
     @GetMapping("/{id}")
     public Mono<TaskEntity> getTaskById(@PathVariable Long id) {
-        return taskService.getTaskById(id)
-                .switchIfEmpty(Mono.error(new TaskNotFoundException(id)));
+        return taskService.getTaskById(id);
     }
 
     @GetMapping
@@ -29,6 +29,7 @@ public class TaskController {
     public Mono<TaskEntity> createTask(@RequestBody TaskEntity task) {
         return taskService.createTask(task);
     }
+
 
     @PutMapping("/{id}")
     public Mono<TaskEntity> updateTask(@PathVariable Long id, @RequestBody TaskEntity task) {
@@ -43,8 +44,4 @@ public class TaskController {
     }
 }
 
-class TaskNotFoundException extends RuntimeException {
-    public TaskNotFoundException(Long id) {
-        super("Task with ID " + id + " not found");
-    }
-}
+

@@ -1,4 +1,4 @@
-package com.mindhub.task_service;
+package com.mindhub.task_service.dtos;
 
 
 import lombok.Getter;
