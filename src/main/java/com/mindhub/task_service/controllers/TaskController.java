@@ -15,6 +15,11 @@ public class TaskController {
     @Autowired
     private TaskService taskService;
 
+    @PostMapping
+    public Mono<TaskEntity> createTask(@RequestBody TaskEntity task) {
+        return taskService.createTask(task);
+    }
+
     @GetMapping("/{id}")
     public Mono<TaskEntity> getTaskById(@PathVariable Long id) {
         return taskService.getTaskById(id);
@@ -23,11 +28,6 @@ public class TaskController {
     @GetMapping
     public Flux<TaskEntity> getAllTasks() {
         return taskService.getAllTasks();
-    }
-
-    @PostMapping
-    public Mono<TaskEntity> createTask(@RequestBody TaskEntity task) {
-        return taskService.createTask(task);
     }
 
 
