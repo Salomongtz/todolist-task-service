@@ -1,5 +1,6 @@
 package com.mindhub.task_service.services.implementations;
 
+import com.mindhub.task_service.dtos.NewTaskRecord;
 import com.mindhub.task_service.exceptions.NoTasksException;
 import com.mindhub.task_service.exceptions.TaskNotFoundException;
 import com.mindhub.task_service.repositories.TaskRepository;
@@ -9,6 +10,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -37,38 +40,44 @@ public class TaskServiceImplementation implements TaskService {
     }
 
     @Override
-    public Mono<TaskEntity> createTask(TaskEntity newTask) {
+    public Mono<TaskEntity> createTask(NewTaskRecord newTask, ServerWebExchange exchange) {
         return Mono.just(newTask)
                 .filter(Objects::nonNull)
                 .switchIfEmpty(Mono.error(new NullPointerException("Task cannot be null")))
-                .filter(task -> StringUtils.isNotBlank(task.getTitle()))
+                .filter(task -> StringUtils.isNotBlank(task.title()))
                 .switchIfEmpty(Mono.error(new DataIntegrityViolationException("Must enter a valid title (title cannot be empty, must be less than 255 characters)")))
-                .filter(task -> StringUtils.isNotBlank(task.getDescription()))
+                .filter(task -> StringUtils.isNotBlank(task.description()))
                 .switchIfEmpty(Mono.error(new DataIntegrityViolationException("Must enter a valid description (description cannot be empty)")))
-                .filter(task -> StringUtils.isNotBlank(task.getStatus()))
+                .filter(task -> StringUtils.isNotBlank(task.status()))
                 .switchIfEmpty(Mono.error(new DataIntegrityViolationException("Must enter a valid status (status cannot be empty, must be less than 50 characters)")))
-                .filter(task -> task.getUserId() != null && task.getUserId() > 0)
-                .switchIfEmpty(Mono.error(new DataIntegrityViolationException("Must enter a valid user id greater than 0")))
-                .flatMap(taskRepository::save);
+                .flatMap(newTaskRecord -> {
+                    WebClient webClient = WebClient.create("http://localhost:8082");
+                    return webClient.get()
+                            .uri("/users/currentId")
+                            .header("username", exchange.getRequest().getHeaders().getFirst("username"))
+                            .retrieve()
+                            .bodyToMono(Long.class)
+                            .flatMap(userId -> taskRepository.save(new TaskEntity(newTaskRecord.title(), newTaskRecord.description(), newTaskRecord.status(), userId)));
+                });
     }
 
 
     @Override
-    public Mono<TaskEntity> updateTask(Long id, TaskEntity task) {
+    public Mono<TaskEntity> updateTask(Long id, NewTaskRecord task) {
         return Mono.just(task)
                 .filter(Objects::nonNull)
                 .switchIfEmpty(Mono.error(new NullPointerException("Task cannot be null")))
-                .filter(t -> StringUtils.isNotBlank(t.getTitle()))
+                .filter(t -> StringUtils.isNotBlank(t.title()))
                 .switchIfEmpty(Mono.error(new DataIntegrityViolationException("Must enter a valid title (title cannot be empty, must be less than 255 characters)")))
-                .filter(t -> StringUtils.isNotBlank(t.getDescription()))
+                .filter(t -> StringUtils.isNotBlank(t.description()))
                 .switchIfEmpty(Mono.error(new DataIntegrityViolationException("Must enter a valid description (description cannot be empty)")))
-                .filter(t -> StringUtils.isNotBlank(t.getStatus()))
+                .filter(t -> StringUtils.isNotBlank(t.status()))
                 .switchIfEmpty(Mono.error(new DataIntegrityViolationException("Must enter a valid status (status cannot be empty, must be less than 50 characters)")))
                 .flatMap(updatedTask -> taskRepository.findById(id)
                         .flatMap(existingTask -> {
-                            existingTask.setTitle(updatedTask.getTitle());
-                            existingTask.setDescription(updatedTask.getDescription());
-                            existingTask.setStatus(updatedTask.getStatus());
+                            existingTask.setTitle(updatedTask.title());
+                            existingTask.setDescription(updatedTask.description());
+                            existingTask.setStatus(updatedTask.status());
                             return taskRepository.save(existingTask);
                         }));
     }

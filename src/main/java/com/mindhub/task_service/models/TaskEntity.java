@@ -13,4 +13,11 @@ public class TaskEntity {
     private String description;
     private String status;
     private Long userId; // Field for the user ID
+
+    public TaskEntity(String title, String description, String status, Long userId) {
+        this.title = title;
+        this.description = description;
+        this.status = status;
+        this.userId = userId;
+    }
 }

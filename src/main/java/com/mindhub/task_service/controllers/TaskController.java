@@ -1,5 +1,6 @@
 package com.mindhub.task_service.controllers;
 
+import com.mindhub.task_service.dtos.NewTaskRecord;
 import com.mindhub.task_service.exceptions.TaskNotFoundException;
 import com.mindhub.task_service.models.TaskEntity;
 import com.mindhub.task_service.services.TaskService;
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -34,8 +36,8 @@ public class TaskController {
             @ApiResponse(responseCode = "400", description = "Invalid request")
     })
     @PostMapping
-    public Mono<ResponseEntity<TaskEntity>> createTask(@RequestBody TaskEntity task) {
-        return taskService.createTask(task)
+    public Mono<ResponseEntity<TaskEntity>> createTask(@RequestBody NewTaskRecord task, ServerWebExchange exchange) {
+        return taskService.createTask(task, exchange)
                 .map(taskEntity -> ResponseEntity.created(URI.create("/tasks/" + taskEntity.getId())).body(taskEntity))
                 .defaultIfEmpty(ResponseEntity.badRequest().build());
     }
@@ -78,7 +80,7 @@ public class TaskController {
     public Mono<ResponseEntity<TaskEntity>> updateTask(
             @Parameter(description = "Task ID", required = true)
             @PathVariable Long id,
-            @RequestBody TaskEntity task) {
+            @RequestBody NewTaskRecord task) {
         return taskService.updateTask(id, task)
                 .map(ResponseEntity::ok)
                 .switchIfEmpty(Mono.error(new TaskNotFoundException(id)));
